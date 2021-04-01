@@ -1,0 +1,11 @@
+{{- define "title" }}Edit message{{ end }}
+{{- define "body" }}
+  <h1>Edit message</h1>
+  <turbo-frame id="messages-new">
+    <form action="/messages/edit?id={{ .ID }}" method="post">
+      <input type="text" name="body" value="{{ .Body }}">
+      <button type="submit">Edit message</button>
+      <a href="/messages/new">cancel</a>
+    </form>
+  </turbo-frame>
+{{- end }}

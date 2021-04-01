@@ -10,10 +10,10 @@
 {{- end }}
 {{- define "body" }}
   <h1>Messages</h1>
-  <turbo-frame id="room-messages">
+  <turbo-frame id="room-messages" target="messages-new">
     {{- range . }}
     {{- template "inner.message.html" . }}
     {{- end }}
   </turbo-frame>
-  <turbo-frame id="messages-new" src="/messages" />
+  <turbo-frame id="messages-new" src="/messages/new" />
 {{- end }}

@@ -1,1 +1,7 @@
-<li>{{ .Body }}</li>
+<li id="message-{{ .ID }}">
+  <span>{{ .Body }}</span>
+  <span>
+    <a href="/messages/delete?id={{ .ID }}">remove</a>
+    <a href="/messages/edit?id={{ .ID }}" data-turbo-frame="messages-new">edit</a>
+  </span>
+</li>
