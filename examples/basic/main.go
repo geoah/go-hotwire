@@ -3,7 +3,6 @@ package main
 import (
 	"embed"
 	"html/template"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -14,10 +13,26 @@ import (
 	"github.com/geoah/go-hotwire"
 )
 
-const mimeTurboStream = "text/vnd.turbo-stream.html"
-
 //go:embed assets/*.html
 var assets embed.FS
+
+var (
+	tplIndex = template.Must(template.ParseFS(
+		assets,
+		"assets/base.html",
+		"assets/inner.message.html",
+		"assets/frame.room.html",
+	))
+	tplMessagesNew = template.Must(template.ParseFS(
+		assets,
+		"assets/base.html",
+		"assets/frame.messages-new.html",
+	))
+	tplMessageInner = template.Must(template.ParseFS(
+		assets,
+		"assets/inner.message.html",
+	))
+)
 
 type (
 	Room struct {
@@ -80,62 +95,40 @@ func main() {
 	r.Use(middleware.Logger)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		tpl, err := template.ParseFS(
-			assets,
-			"assets/base.html",
-			"assets/frame.room.html",
-		)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		tpl.Execute(
+		tplIndex.Execute(
 			w,
 			c.Messages,
 		)
 	})
 
 	r.Get("/messages", func(w http.ResponseWriter, r *http.Request) {
-		tpl, err := template.ParseFS(
-			assets,
-			"assets/base.html",
-			"assets/frame.messages-new.html",
-		)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		tpl.Execute(
+		tplMessagesNew.Execute(
 			w,
 			nil,
 		)
 	})
 
 	r.Post("/messages", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", mimeTurboStream)
 		body := r.PostFormValue("body")
 		c.AddMessage(body)
 	})
-
-	tpl, err := template.ParseFS(
-		assets,
-		"assets/inner.message.html",
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	es := hotwire.NewEventStream()
 	r.Get("/events", es.ServeHTTP)
 
 	go func() {
-		ms := c.OnAddMessage()
+		messages := c.OnAddMessage()
 		for {
-			m, ok := <-ms
+			message, ok := <-messages
 			if !ok {
 				return
 			}
-			es.SendEvent(hotwire.StreamActionAppend, "room-messages", tpl, m)
+			es.SendEvent(
+				hotwire.StreamActionAppend,
+				"room-messages",
+				tplMessageInner,
+				message,
+			)
 		}
 	}()
 

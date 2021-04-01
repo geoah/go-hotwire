@@ -12,8 +12,8 @@
   <h1>Messages</h1>
   <turbo-frame id="room-messages">
     {{- range . }}
-    <li>{{ .Body }}</li>
+    {{- template "inner.message.html" . }}
     {{- end }}
   </turbo-frame>
-  <turbo-frame id="messages-new" src="/messages" target="_top" />
+  <turbo-frame id="messages-new" src="/messages" />
 {{- end }}
