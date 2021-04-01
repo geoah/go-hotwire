@@ -1,0 +1,9 @@
+{{- define "title" }}Message added{{ end }}
+{{- define "body" }}
+  <h1>Message added</h1>
+  <turbo-stream action="append" target="room-messages" id="messages-{{ .ID }}">
+    <template>
+      <li>{{ .Body }}</li>
+    </template>
+  </turbo-stream>
+{{- end }}

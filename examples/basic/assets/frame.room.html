@@ -1,0 +1,19 @@
+{{- define "title" }}Messages{{ end }}
+{{- define "head" }}
+<script type="text/javascript">
+  if (window["EventSource"] && window["Turbo"]) {
+    Turbo.connectStreamSource(new EventSource("/events"));
+  } else {
+    console.warn("events not available");
+  }
+</script>
+{{- end }}
+{{- define "body" }}
+  <h1>Messages</h1>
+  <turbo-frame id="room-messages">
+    {{- range . }}
+    <li>{{ .Body }}</li>
+    {{- end }}
+  </turbo-frame>
+  <turbo-frame id="messages-new" src="/messages" target="_top" />
+{{- end }}

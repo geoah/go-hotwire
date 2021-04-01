@@ -1,0 +1,10 @@
+{{define "title"}}Hotwire{{end}}
+{{define "body"}}
+  <h1>New message</h1>
+  <turbo-frame id="messages-new">
+    <form action="/messages" method="post">
+      <input type="text" name="body">
+      <button type="submit">Add message</button>
+    </form>
+  </turbo-frame>
+{{end}}
