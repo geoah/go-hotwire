@@ -144,6 +144,7 @@ func main() {
 		message := c.AddMessage(body)
 		// send stream event to add the message
 		es.SendEvent(
+			"",
 			hotwire.StreamActionAppend,
 			"room-messages",
 			tplMessageInner,
@@ -174,6 +175,7 @@ func main() {
 		}
 		// send stream event to update the message
 		es.SendEvent(
+			"",
 			hotwire.StreamActionReplace,
 			"message-"+id,
 			tplMessageInner,
@@ -188,6 +190,7 @@ func main() {
 		c.RemoveMessage(id)
 		// send stream event to remove the message
 		es.SendEvent(
+			"",
 			hotwire.StreamActionRemove,
 			"message-"+id,
 			tplMessageInner,

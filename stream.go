@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
+	"sync"
 	"sync/atomic"
 
 	"gopkg.in/antage/eventsource.v1"
@@ -25,12 +27,21 @@ type (
 	}
 	EventStream interface {
 		http.Handler
-		SendEvent(StreamAction, string, *template.Template, interface{}) error
-		Close()
+		SendEvent(
+			group string,
+			action StreamAction,
+			id string,
+			tpl *template.Template,
+			values interface{},
+		) error
+		Close(
+			group string,
+		)
 	}
 	eventStream struct {
-		eventSource eventsource.EventSource
-		sequence    uint64
+		sync.RWMutex
+		eventSources map[string]eventsource.EventSource
+		sequence     uint64
 	}
 )
 
@@ -55,16 +66,34 @@ func NewEventStream() EventStream {
 		template.ParseFS(assets, "assets/payload.turbo-stream.html"),
 	)
 	return &eventStream{
-		eventSource: eventsource.New(nil, EventStreamHeaders),
-		sequence:    1,
+		eventSources: map[string]eventsource.EventSource{},
+		sequence:     1,
 	}
 }
 
+func (h *eventStream) getEventSource(group string) eventsource.EventSource {
+	h.RLock()
+	es, ok := h.eventSources[group]
+	if ok {
+		h.RUnlock()
+		return es
+	}
+	h.RUnlock()
+	h.Lock()
+	es = eventsource.New(nil, EventStreamHeaders)
+	h.eventSources[group] = es
+	h.Unlock()
+	return es
+}
+
 func (h *eventStream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.eventSource.ServeHTTP(w, r)
+	group := strings.TrimSpace(r.URL.Query().Get("group"))
+	es := h.getEventSource(group)
+	es.ServeHTTP(w, r)
 }
 
 func (h *eventStream) SendEvent(
+	group string,
 	action StreamAction,
 	target string,
 	tpl *template.Template,
@@ -91,16 +120,17 @@ func (h *eventStream) SendEvent(
 	}
 
 	n := atomic.AddUint64(&h.sequence, 1)
-	h.eventSource.SendEventMessage(
-		event,
-		"message",
-		fmt.Sprintf("%d", n),
-	)
+	h.getEventSource(group).
+		SendEventMessage(
+			event,
+			"message",
+			fmt.Sprintf("%d", n),
+		)
 	return nil
 }
 
-func (h *eventStream) Close() {
-	h.eventSource.Close()
+func (h *eventStream) Close(group string) {
+	h.getEventSource(group).Close()
 }
 
 func EventStreamHeaders(*http.Request) [][]byte {
